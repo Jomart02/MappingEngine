@@ -14,6 +14,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/include/MapHandler
     ${CMAKE_SOURCE_DIR}/include/MapWidget
+    ${CMAKE_SOURCE_DIR}/include/MapDefines
 )
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
@@ -31,12 +32,15 @@ set(SRCS
     src/main.cpp
     src/MapHandler/MapHandler.cpp
     src/MapWidget/MapWidget.cpp
-    
+    src/MapHandler/Feature.cpp
 )
 
 set(HDRS
     include/MapHandler/MapHandler.h
     include/MapWidget/MapWidget.h
+    include/MapDefines/MapDefines.h
+    include/MapHandler/Geometry.h
+    include/MapHandler/Feature.h
 )
 
 set(QRCS

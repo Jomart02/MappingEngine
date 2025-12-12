@@ -1,105 +1,193 @@
 #include "MapHandler.h"
-#include <QQmlProperty>
+#include "Feature.h"
 
 MapHandler* MapHandler::instance()
 {
-    static MapHandler* s_instance = new MapHandler();
-    return s_instance;
+    static MapHandler inst;
+    return &inst;
 }
 
-MapHandler::MapHandler(QObject *parent)
-    : QObject(parent)
-{
-}
+MapHandler::MapHandler(QObject* parent) : QObject(parent) {}
 
 void MapHandler::setMapItem(QQuickItem* item)
 {
     if (m_mapItem == item) return;
-
     m_mapItem = item;
     emit mapItemChanged();
 }
 
-void MapHandler::addMarker(double lat, double lon, const QString& title)
+void MapHandler::addFeature(AbstractFeature* feature)
 {
-    if (!m_mapItem) {
-        qWarning() << "MapHandler: No map item set!";
+    if (!feature || feature->name().isEmpty()) {
+        qWarning() << "Feature must have a non-empty name";
         return;
     }
 
-    // ← ИСПРАВЛЕНО: четвёртый параметр — пустая строка (стандартный маркер)
-    QVariant returnedValue;
-    bool success = QMetaObject::invokeMethod(m_mapItem, "addMarker",
-                                             Q_RETURN_ARG(QVariant, returnedValue),
-                                             Q_ARG(QVariant, lat),
-                                             Q_ARG(QVariant, lon),
-                                             Q_ARG(QVariant, title),
-                                             Q_ARG(QVariant, QString("")));  // ← четвёртый параметр
+    const QString name = feature->name();
 
-    if (!success) {
-        qWarning() << "MapHandler: Failed to invoke addMarker";
-        return;
+    if (m_features.contains(name)) {
+        qWarning() << "Feature" << name << "already exists → replacing";
+        removeFeature(name);
     }
 
-    int id = returnedValue.toInt();
-    if (id >= 0) {
-        qDebug() << "MapHandler: Added marker" << id << "at" << lat << lon;
-        emit markerAdded(id, lat, lon);
-    } else {
-        qWarning() << "MapHandler: addMarker returned invalid ID:" << id;
+    feature->setParent(this);
+    m_features[name] = feature;
+
+    QVariantMap geomData;
+    Geometry* g = feature->geometry();
+
+    switch (g->geometryType()) {
+    case GeometryType::Point: {
+        auto* p = static_cast<Point*>(g);
+        geomData["type"] = "Point";
+        geomData["lat"] = p->coordinate.lat;
+        geomData["lon"] = p->coordinate.lon;
+        break;
+    }
+    case GeometryType::LineString: {
+        auto* ls = static_cast<LineString*>(g);
+        geomData["type"] = "LineString";
+        QVariantList coords;
+        for (const auto& c : ls->coordinates)
+            coords << QVariantMap{{"lat", c.lat}, {"lon", c.lon}};
+        geomData["coordinates"] = coords;
+        break;
+    }
+    case GeometryType::Polygon: {
+        auto* poly = static_cast<Polygon*>(g);
+        geomData["type"] = "Polygon";
+        QVariantList exterior;
+        for (const auto& c : poly->exteriorRing)
+            exterior << QVariantMap{{"lat", c.lat}, {"lon", c.lon}};
+        geomData["exterior"] = exterior;
+        break;
+    }
+    case GeometryType::Circle: {
+        auto* c = static_cast<Circle*>(g);
+        geomData["type"] = "Circle";
+        geomData["lat"] = c->center.lat;
+        geomData["lon"] = c->center.lon;
+        geomData["radius"] = c->radiusMeters;
+        break;
+        break;
+    }
+    }
+    
+    emit featureAdded(name, feature->geometryType(), geomData, feature->style()->toVariantMap());
+    setupConnections(feature);
+}
+
+void MapHandler::setupConnections(AbstractFeature* f)
+{
+    const QString originalName = f->name();
+
+    // Вспомогательная функция — конвертирует Geometry → QVariantMap
+    auto toVariantMap = [f]() -> QVariantMap {
+        QVariantMap map;
+        Geometry* g = f->geometry();
+        if (!g) return map;
+
+        switch (g->geometryType()) {
+        case GeometryType::Point: {
+            auto* p = static_cast<Point*>(g);
+            map["type"] = "Point";
+            map["lat"] = p->coordinate.lat;
+            map["lon"] = p->coordinate.lon;
+            break;
+        }
+        case GeometryType::LineString:
+        case GeometryType::MultiLineString: {
+            auto* ls = static_cast<LineString*>(g);
+            map["type"] = "LineString";
+            QVariantList coords;
+            for (const auto& c : ls->coordinates) {
+                coords.append(QVariantMap{{"lat", c.lat}, {"lon", c.lon}});
+            }
+            map["coordinates"] = coords;
+            break;
+        }
+        case GeometryType::Polygon:
+        case GeometryType::MultiPolygon: {
+            auto* poly = static_cast<Polygon*>(g);
+            map["type"] = "Polygon";
+            QVariantList exterior;
+            for (const auto& c : poly->exteriorRing) {
+                exterior.append(QVariantMap{{"lat", c.lat}, {"lon", c.lon}});
+            }
+            map["exterior"] = exterior;
+            break;
+        }
+        case GeometryType::Circle: {
+            auto* c = static_cast<Circle*>(g);
+            map["type"] = "Circle";
+            map["lat"] = c->center.lat;
+            map["lon"] = c->center.lon;
+            map["radius"] = c->radiusMeters;
+            break;
+        }
+        default:
+            break;
+        }
+        return map;
+    };
+
+    auto updateFeature = [this, f, toVariantMap, originalName]() {
+        QString currentName = f->name().isEmpty() ? originalName : f->name();
+        QVariantMap geomData = toVariantMap();
+        QVariantMap style = f->style()->toVariantMap();
+
+        style["visible"] = f->visible();
+        emit featureUpdated(currentName, geomData, style);
+    };
+
+    connect(f, &AbstractFeature::geometryChanged, this, updateFeature);
+    connect(f, &AbstractFeature::styleChanged,    this, updateFeature);
+    connect(f, &AbstractFeature::visibleChanged,   this, updateFeature);
+
+    connect(f, &AbstractFeature::nameChanged, this, [this, f, toVariantMap](const QString& newName) {
+        if (newName.isEmpty() || newName == f->name()) return;
+
+        QString oldName = f->name(); 
+        if (m_features.contains(oldName)) {
+            m_features.remove(oldName);
+            m_features[newName] = f;
+
+            QVariantMap geomData = toVariantMap();
+            QVariantMap style = f->style()->toVariantMap();
+            style["visible"] = f->visible();
+
+            emit featureUpdated(newName, geomData, style);
+        }
+    });
+
+
+}
+
+void MapHandler::removeFeature(const QString& name) {
+    if (AbstractFeature* f = m_features.take(name)) {
+        emit featureRemoved(name);
+        f->deleteLater();
     }
 }
 
-void MapHandler::updateMarker(int id, double lat, double lon)
-{
-    if (!m_mapItem) {
-        qWarning() << "MapHandler: No map item set!";
-        return;
-    }
-
-    bool success = QMetaObject::invokeMethod(m_mapItem, "updateMarker",
-                                             Q_ARG(QVariant, id),
-                                             Q_ARG(QVariant, lat),
-                                             Q_ARG(QVariant, lon));
-
-    if (success) {
-        qDebug() << "MapHandler: Updated marker" << id << "to" << lat << lon;
-        emit markerUpdated(id, lat, lon);
-    } else {
-        qWarning() << "MapHandler: Failed to update marker" << id;
-    }
+void MapHandler::removeFeature(AbstractFeature* f) {
+    if (f) removeFeature(f->name());
 }
 
-void MapHandler::removeMarker(int id)
-{
-    if (!m_mapItem) {
-        qWarning() << "MapHandler: No map item set!";
-        return;
-    }
-
-    bool success = QMetaObject::invokeMethod(m_mapItem, "removeMarker",
-                                             Q_ARG(QVariant, id));
-
-    if (success) {
-        qDebug() << "MapHandler: Removed marker" << id;
-        emit markerRemoved(id);
-    } else {
-        qWarning() << "MapHandler: Failed to remove marker" << id;
-    }
+void MapHandler::clearAll() {
+    for (const QString& n : m_features.keys()) emit featureRemoved(n);
+    qDeleteAll(m_features);
+    m_features.clear();
 }
 
-void MapHandler::clearMarkers()
-{
-    if (!m_mapItem) {
-        qWarning() << "MapHandler: No map item set!";
-        return;
-    }
+AbstractFeature* MapHandler::feature(const QString& name) const {
+    return m_features.value(name);
+}
 
-    bool success = QMetaObject::invokeMethod(m_mapItem, "clearMarkers");
+void MapHandler::setVisible(const QString& name, bool v) {
+    if (auto* f = feature(name)) f->setVisible(v);
+}
 
-    if (success) {
-        qDebug() << "MapHandler: Cleared all markers";
-    } else {
-        qWarning() << "MapHandler: Failed to clear markers";
-    }
+void MapHandler::centerOn(const QString& name) {
+
 }
