@@ -8,6 +8,11 @@
 #include "MapWidget.h"
 #include <QVBoxLayout>
 #include <QTimer>
+
+#include <QGeoServiceProvider>
+ // qDebug() << QGeoServiceProvider::availableServiceProviders();
+
+
 int main(int argc, char *argv[])
 {
 QApplication app(argc, argv);

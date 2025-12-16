@@ -9,12 +9,12 @@ Item {
     anchors.fill: parent
     signal mapClicked(double latitude, double longitude)
 
-    // ФИКСИМ ОШИБКУ OSM
+
     Plugin {
         id: mapPlugin
-        name: "osm"
-        PluginParameter { name: "osm.mapping.providersrepository.disabled"; value: "true" }
-        PluginParameter { name: "osm.mapping.highdpi_tiles"; value: true }
+        name: "MapPlugin"
+        // PluginParameter { name: "osm.mapping.providersrepository.disabled"; value: "true" }
+        // PluginParameter { name: "osm.mapping.highdpi_tiles"; value: true }
     }
 
     Map {

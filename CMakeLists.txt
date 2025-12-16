@@ -10,6 +10,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/include/MapHandler
@@ -17,7 +19,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include/MapDefines
 )
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
+
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
     Core
     Gui
@@ -65,21 +67,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_include_directories(MappingEngine PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-# # Optional: better include directories (modern CMake)
-# target_include_directories(${PROJECT_NAME} PRIVATE
-#     ${CMAKE_SOURCE_DIR}/include
-#     ${CMAKE_SOURCE_DIR}/include/MapHandler
-# )
 
-
-#================ TEST ======================
-
-
-# enable_testing()
-
-# include(FetchContent)
-# FetchContent_Declare(
-#     googletest
-#     URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-# )
-
+add_subdirectory(Plugin)  # ← добавь эту строку, если плагин в папке plugin

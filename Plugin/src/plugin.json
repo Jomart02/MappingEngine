@@ -1,0 +1,10 @@
+{
+    "Keys": ["MapPlugin"],
+    "Provider": "MapPlugin",
+    "Version": 100,
+    "Experimental": false,
+    "Features": [
+        "OfflineMappingFeature"
+    ]
+    
+}
