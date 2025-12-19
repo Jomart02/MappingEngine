@@ -72,3 +72,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 
 target_include_directories(MappingEngine PRIVATE ${CMAKE_SOURCE_DIR}/include)
+add_subdirectory(Plugin)  # ← добавь эту строку, если плагин в папке plugin

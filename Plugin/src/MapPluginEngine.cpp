@@ -4,9 +4,6 @@
 #include "QtLocation/private/qgeomaptype_p.h"
 
 
-
-MapPluginEngine* MapPluginEngine::s_instance = nullptr;
-
 MapPluginEngine::MapPluginEngine(const QVariantMap &parameters)
     : QGeoTiledMappingManagerEngine()
 {
@@ -39,11 +36,6 @@ MapPluginEngine::MapPluginEngine(const QVariantMap &parameters)
 
     m_tileFetcher = new MapTileFetcher(parameters, this, QSize(256, 256));
     setTileFetcher(m_tileFetcher);
-}
-
-MapPluginEngine* MapPluginEngine::instance()
-{
-    return s_instance;
 }
 
 QGeoMap *MapPluginEngine::createMap()
