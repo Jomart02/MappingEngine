@@ -5,10 +5,11 @@
 
 
 
+MapPluginEngine* MapPluginEngine::s_instance = nullptr;
+
 MapPluginEngine::MapPluginEngine(const QVariantMap &parameters)
     : QGeoTiledMappingManagerEngine()
 {
-    qDebug() << "🔥 MapPluginEngine CONSTRUCTOR";
     QGeoCameraCapabilities cameraCaps;
     cameraCaps.setMinimumZoomLevel(0.0);
     cameraCaps.setMaximumZoomLevel(19.0);
@@ -30,7 +31,7 @@ MapPluginEngine::MapPluginEngine(const QVariantMap &parameters)
         false,                          // mobile
         false,                          // night
         1,                              // mapId
-        QByteArrayLiteral("MapPlugin"), // 🔥 ОБЯЗАТЕЛЬНО совпадает с JSON Keys
+        QByteArrayLiteral("MapPlugin"), 
         cameraCaps,
         QVariantMap()                   // metadata
     );
@@ -38,8 +39,11 @@ MapPluginEngine::MapPluginEngine(const QVariantMap &parameters)
 
     m_tileFetcher = new MapTileFetcher(parameters, this, QSize(256, 256));
     setTileFetcher(m_tileFetcher);
+}
 
-
+MapPluginEngine* MapPluginEngine::instance()
+{
+    return s_instance;
 }
 
 QGeoMap *MapPluginEngine::createMap()

@@ -15,6 +15,8 @@ class MapPluginEngine : public QGeoTiledMappingManagerEngine
 public:
     explicit MapPluginEngine(const QVariantMap &parameters);
     QGeoMap *createMap() override;
+    static MapPluginEngine* instance();
 private:
     MapTileFetcher *m_tileFetcher = nullptr;
+    static MapPluginEngine* s_instance;
 };

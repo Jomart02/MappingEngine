@@ -1,8 +1,12 @@
 #include "MapWidget.h"
-
+#include <QQuickItem>
 MapWidget::MapWidget(QWidget *parent)
     : QQuickWidget(parent)
 {
-    setSource(QUrl("qrc:/qml/Map.qml"));
+
     setResizeMode(QQuickWidget::SizeRootObjectToView);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    setSource(QUrl(QStringLiteral("qrc:/qml/Map.qml")));
+    
 }

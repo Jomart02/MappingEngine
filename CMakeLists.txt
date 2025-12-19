@@ -19,7 +19,6 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/include/MapDefines
 )
 
-
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
     Core
     Gui
@@ -28,7 +27,11 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
     Location
     Positioning
     QuickWidgets
+    
 )
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GDAL REQUIRED gdal)
+
 
 set(SRCS
     src/main.cpp
@@ -47,6 +50,7 @@ set(HDRS
 
 set(QRCS
     resources/map.qrc
+    
 )
 
 add_executable(${PROJECT_NAME}
@@ -54,6 +58,7 @@ add_executable(${PROJECT_NAME}
     ${HDRS}
     ${QRCS}
 )
+
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
@@ -65,7 +70,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::QuickWidgets
 )
 
+
 target_include_directories(MappingEngine PRIVATE ${CMAKE_SOURCE_DIR}/include)
-
-
-add_subdirectory(Plugin)  # ← добавь эту строку, если плагин в папке plugin

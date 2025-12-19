@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 {
 QApplication app(argc, argv);
 
-
+    qDebug() << QGeoServiceProvider::availableServiceProviders();
     qmlRegisterUncreatableType<GeometryType>("com.mycompany.map", 1, 0, "GeometryType", "Enum only");
 
     qmlRegisterSingletonType<MapHandler>("com.mycompany.map", 1, 0, "MapHandler",
@@ -87,34 +87,40 @@ QApplication app(argc, argv);
     handler->addFeature(coverage);
 
 //     
-    QTimer::singleShot(1000, [=]() mutable {
-        for (int i = 0; i < 5; ++i) {
-            QTimer::singleShot(i * 300, [=]() {
-                auto* pulse = new CircleFeature(QString("pulse_%1").arg(i),
-                                               new Circle({37.6173 + i*0.01, 55.7558 + i*0.01}, 1000 + i*500));
-                auto* s = pulse->style();
-                s->borderPen.setColor(QColor(255, 255, 255, 200));
-                s->borderPen.setWidthF(4 + i);
-                s->fillBrush.setColor(QColor(100, 200, 255, 30 + i*20));
-                s->opacity = 0.8;
-                handler->addFeature(pulse);
-                    QTimer::singleShot(3000, [=]() {
-                         s->borderPen.setColor(QColor(Qt::red));
-                         s->borderPen.setWidthF(4*5 + i);
-                         s->fillBrush.setColor(QColor(100, 200, 255, 30 + i*20));
-                         s->opacity = 0.8;
-                          pulse->setStyle(s);
-                    });
+    // QTimer::singleShot(1000, [=]() mutable {
+    //     for (int i = 0; i < 5; ++i) {
+    //         QTimer::singleShot(i * 300, [=]() {
+    //             auto* pulse = new CircleFeature(QString("pulse_%1").arg(i),
+    //                                            new Circle({37.6173 + i*0.01, 55.7558 + i*0.01}, 1000 + i*500));
+    //             auto* s = pulse->style();
+    //             s->borderPen.setColor(QColor(255, 255, 255, 200));
+    //             s->borderPen.setWidthF(4 + i);
+    //             s->fillBrush.setColor(QColor(100, 200, 255, 30 + i*20));
+    //             s->opacity = 0.8;
+    //             handler->addFeature(pulse);
+    //                 QTimer::singleShot(3000, [=]() {
+    //                     qDebug() << "AAAA" <<i;
+    //                     s->borderPen.setColor(QColor(Qt::red));
+    //                     s->borderPen.setWidthF(4*5 + i);
+    //                     s->fillBrush.setColor(QColor(1, 33, 111, 30 + i*20));
+    //                     s->opacity = 0.8;
+    //                     pulse->setStyle(s);
+    //                     pulse->notifyStyleChanged();
+    //                     auto g = pulse->geometry();
+    //                     g->center = {37.6173 + i*0.2, 55.7558 + i*0.2};
+    //                     g->radiusMeters = 1000 + i*5000;
+    //                     pulse->notifyGeometryChanged();
+    //                 });
                 
-                QTimer::singleShot(7000, [=]() {
-                    handler->removeFeature(pulse);
-                });
-            });
-        }
-    });
-
-
+    //             QTimer::singleShot(7000, [=]() {
+    //                 handler->removeFeature(pulse);
+    //             });
+    //         });
+    //     }
+    // });
 
 
     return app.exec();
 }
+
+

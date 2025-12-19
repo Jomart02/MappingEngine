@@ -9,13 +9,6 @@ MapHandler* MapHandler::instance()
 
 MapHandler::MapHandler(QObject* parent) : QObject(parent) {}
 
-void MapHandler::setMapItem(QQuickItem* item)
-{
-    if (m_mapItem == item) return;
-    m_mapItem = item;
-    emit mapItemChanged();
-}
-
 void MapHandler::addFeature(AbstractFeature* feature)
 {
     if (!feature || feature->name().isEmpty()) {
@@ -137,28 +130,28 @@ void MapHandler::setupConnections(AbstractFeature* f)
         QVariantMap style = f->style()->toVariantMap();
 
         style["visible"] = f->visible();
-        emit featureUpdated(currentName, geomData, style);
+        emit featureUpdated(currentName, f->geometryType(), geomData, style);
     };
 
     connect(f, &AbstractFeature::geometryChanged, this, updateFeature);
     connect(f, &AbstractFeature::styleChanged,    this, updateFeature);
     connect(f, &AbstractFeature::visibleChanged,   this, updateFeature);
 
-    connect(f, &AbstractFeature::nameChanged, this, [this, f, toVariantMap](const QString& newName) {
-        if (newName.isEmpty() || newName == f->name()) return;
+    // connect(f, &AbstractFeature::nameChanged, this, [this, f, toVariantMap](const QString& newName) {
+    //     if (newName.isEmpty() || newName == f->name()) return;
 
-        QString oldName = f->name(); 
-        if (m_features.contains(oldName)) {
-            m_features.remove(oldName);
-            m_features[newName] = f;
+    //     QString oldName = f->name(); 
+    //     if (m_features.contains(oldName)) {
+    //         m_features.remove(oldName);
+    //         m_features[newName] = f;
 
-            QVariantMap geomData = toVariantMap();
-            QVariantMap style = f->style()->toVariantMap();
-            style["visible"] = f->visible();
+    //         QVariantMap geomData = toVariantMap();
+    //         QVariantMap style = f->style()->toVariantMap();
+    //         style["visible"] = f->visible();
 
-            emit featureUpdated(newName, geomData, style);
-        }
-    });
+    //         emit featureUpdated(newName, geomData, style);
+    //     }
+    // });
 
 
 }

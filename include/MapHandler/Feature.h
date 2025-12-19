@@ -30,7 +30,8 @@ public:
     void setVisible(bool v);
 
     int geometryType() const { return m_geometry ? static_cast<int>(m_geometry->geometryType()) : -1; }
-
+    void notifyStyleChanged();
+    void notifyGeometryChanged();
 signals:
     void nameChanged(const QString& name);
     void geometryChanged();

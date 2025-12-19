@@ -62,3 +62,11 @@ void AbstractFeature::setName(const QString& name)
     m_name = name;
     emit nameChanged(name);
 }
+
+void AbstractFeature::notifyStyleChanged() {
+    emit styleChanged();
+}
+
+void AbstractFeature::notifyGeometryChanged() {
+    emit geometryChanged();
+}

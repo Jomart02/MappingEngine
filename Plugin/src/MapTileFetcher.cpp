@@ -21,6 +21,19 @@ MapTileFetcher::~MapTileFetcher()
 QGeoTiledMapReply * MapTileFetcher::getTileImage(const QGeoTileSpec &spec)
 {
 
-    qDebug() << "tile:" << spec.x() << spec.y() << spec.zoom();
-    return new MapReply(spec, this);
+    qDebug() << "Request tile:" << spec.x() << spec.y() << spec.zoom();
+
+    MapReply *reply = new MapReply(spec, this);
+
+    // ВКЛЮЧАЕМ ВАШ ОВЕРЛЕЙ ЗДЕСЬ
+    // Вариант 1: всегда включён
+    // reply->setOverlayEnabled(true);
+
+    // Вариант 2: по параметру плагина (рекомендуется)
+    bool overlayEnabled = parent()->property("overlayEnabled").toBool(); // если используете dynamic property
+    // или через parameters, переданные в engine
+
+    reply->setOverlayEnabled(true);  // <-- Включите, когда нужно показать вашу карту
+
+    return reply;
 }

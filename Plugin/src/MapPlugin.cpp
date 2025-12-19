@@ -10,9 +10,6 @@ QGeoMappingManagerEngine *MapPlugin::createMappingManagerEngine(
 {
     Q_UNUSED(errorString);
 
-
-    qDebug() << "🔥 MapPlugin::createMappingManagerEngine CALLED";
-
     *error = QGeoServiceProvider::NoError;
     return new MapPluginEngine(parameters);
 }
