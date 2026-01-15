@@ -29,9 +29,6 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
     QuickWidgets
     
 )
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GDAL REQUIRED gdal)
-
 
 set(SRCS
     src/main.cpp
@@ -59,6 +56,7 @@ add_executable(${PROJECT_NAME}
     ${QRCS}
 )
 
+add_subdirectory(Plugin)  
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
@@ -68,8 +66,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Location
     Qt${QT_VERSION_MAJOR}::Positioning
     Qt${QT_VERSION_MAJOR}::QuickWidgets
+    MapPlugin
 )
-
-
+include_directories(${Qt6Location_PRIVATE_INCLUDE_DIRS})
 target_include_directories(MappingEngine PRIVATE ${CMAKE_SOURCE_DIR}/include)
-add_subdirectory(Plugin)  # ← добавь эту строку, если плагин в папке plugin

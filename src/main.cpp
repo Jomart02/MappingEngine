@@ -32,19 +32,24 @@ QApplication app(argc, argv);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                      &app, []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
     engine.load(url);
-
+    qDebug() << engine.rootObjects();
     if (engine.rootObjects().isEmpty())
         return -1;
 
-    auto* handler = MapHandler::instance();
+    
      
-     QWidget window;
+    QWidget window;
     window.setWindowTitle("MappingEngine — Профессиональный стиль");
     auto *layout = new QVBoxLayout(&window);
     auto *mapWidget = new MapWidget;
     layout->addWidget(mapWidget);
     window.resize(1400, 900);
     window.show();
+    
+    
+    
+    auto* handler = MapHandler::instance();
+    
 
     auto* lineGeom = new LineString();
     lineGeom->coordinates << Coordinate(17.58, 25.73)

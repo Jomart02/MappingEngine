@@ -13,7 +13,7 @@ class MapReply : public QGeoTiledMapReply
 {
     Q_OBJECT
 public:
-    explicit MapReply(const QGeoTileSpec &spec, QObject *parent = nullptr);
+    explicit MapReply(const QGeoTileSpec &spec,bool over, QObject *parent = nullptr);
     ~MapReply() override;
 
     void abort() override;
@@ -30,7 +30,6 @@ private:
     QPointer<QNetworkReply> m_seaMapReply;
     QImage m_osmImage;  // Храним OSM изображение до загрузки второго слоя
     bool m_overlayEnabled = true;
-
     QString osmTileUrl(const QGeoTileSpec &spec) const;
     QString seaMapTileUrl(const QGeoTileSpec &spec) const;  // Новый URL для OpenSeaMap
 };

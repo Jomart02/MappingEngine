@@ -6,6 +6,9 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
 message("Building " ${PROJECT_NAME})
 
@@ -13,9 +16,6 @@ find_package(QT NAMES Qt6 REQUIRED COMPONENTS Location Network Positioning)
 find_package(Qt6 REQUIRED COMPONENTS Location Network Positioning)
 
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
 
 add_library(${PROJECT_NAME} SHARED
     ./src/MapPlugin.cpp 
@@ -38,9 +38,15 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Location
     Qt6::Network
     Qt6::Positioning
+    ${GDAL_LIBRARIES}
 )
 include_directories(${Qt6Location_PRIVATE_INCLUDE_DIRS})
 
 install(TARGETS ${PROJECT_NAME}
     DESTINATION ${QT6_INSTALL_PREFIX}/${QT6_INSTALL_PLUGINS}/geoservices
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src   
+    ${GDAL_INCLUDE_DIRS}
 )

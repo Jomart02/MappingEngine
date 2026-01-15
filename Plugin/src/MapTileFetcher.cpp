@@ -9,7 +9,7 @@
 MapTileFetcher::MapTileFetcher(const QVariantMap &parameters,
     MapPluginEngine *engine,
     const QSize &tileSize)
-    : QGeoTileFetcher(engine)
+    : QGeoTileFetcher(engine),m_engine(engine)
 {
 
     
@@ -18,22 +18,27 @@ MapTileFetcher::~MapTileFetcher()
 {
 }
 
+void MapTileFetcher::setOverlay(bool over){
+    overlay = over;
+    m_engine->tileCache()->clearAll();
+}
+
 QGeoTiledMapReply * MapTileFetcher::getTileImage(const QGeoTileSpec &spec)
 {
 
     qDebug() << "Request tile:" << spec.x() << spec.y() << spec.zoom();
 
-    MapReply *reply = new MapReply(spec, this);
+    MapReply *reply = new MapReply(spec, overlay,this);
 
     // ВКЛЮЧАЕМ ВАШ ОВЕРЛЕЙ ЗДЕСЬ
     // Вариант 1: всегда включён
     // reply->setOverlayEnabled(true);
 
     // Вариант 2: по параметру плагина (рекомендуется)
-    bool overlayEnabled = parent()->property("overlayEnabled").toBool(); // если используете dynamic property
+    // bool overlayEnabled = parent()->property("overlayEnabled").toBool(); // если используете dynamic property
     // или через parameters, переданные в engine
-
-    reply->setOverlayEnabled(true);  // <-- Включите, когда нужно показать вашу карту
+    qDebug() << overlay;
+    // reply->setOverlayEnabled(overlay);  // <-- Включите, когда нужно показать вашу карту
 
     return reply;
 }

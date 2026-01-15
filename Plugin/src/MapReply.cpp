@@ -8,9 +8,9 @@
 #include <QBuffer>
 
 
-MapReply::MapReply(const QGeoTileSpec &spec, QObject *parent)
+MapReply::MapReply(const QGeoTileSpec &spec,bool over, QObject *parent)
     : QGeoTiledMapReply(spec, parent)
-    , m_osmImage()
+    , m_osmImage(),m_overlayEnabled(over)
 {
     QNetworkAccessManager *nam = new QNetworkAccessManager(this);
 

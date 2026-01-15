@@ -27,7 +27,7 @@ signals:
     void featureAdded(const QString& name, int type, QVariantMap geometry, QVariantMap style);
     void featureUpdated(const QString& name, int type, QVariantMap geometry, QVariantMap style);
     void featureRemoved(const QString& name);
-
+    void requestMapRefresh();
 private:
     explicit MapHandler(QObject* parent = nullptr);
     void setupConnections(AbstractFeature* f);

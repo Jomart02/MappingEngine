@@ -288,6 +288,11 @@ Item {
                 delete map.__items[name]
             }
         }
+        function onRequestMapRefresh() {
+            console.log("Map refresh requested from C++")
+            map.clearData() 
+            map.update()
+        }
     }
 
     // КОМПОНЕНТЫ — ОНИ ДОЛЖНЫ БЫТЬ НА УРОВНЕ root

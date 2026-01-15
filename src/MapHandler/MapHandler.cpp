@@ -1,13 +1,31 @@
 #include "MapHandler.h"
 #include "Feature.h"
-
+#include "MapPluginEngine.h"
+#include "MapTileFetcher.h"
+#include <QTimer>
 MapHandler* MapHandler::instance()
 {
     static MapHandler inst;
     return &inst;
 }
 
-MapHandler::MapHandler(QObject* parent) : QObject(parent) {}
+MapHandler::MapHandler(QObject* parent) : QObject(parent) {
+
+    QTimer::singleShot(5000, [=](){
+        qDebug() << "AAAAAAAAAAAAAAAAAAAAAAAAAAA"<<MapPluginEngine::instance();
+        QTimer::singleShot(10000,[=](){
+            MapPluginEngine::instance()->getFetcher()->setOverlay(false);  
+            qDebug() << "bbbbbbbbbbbb";
+            emit requestMapRefresh();
+            QTimer::singleShot(10000,[=](){
+                MapPluginEngine::instance()->getFetcher()->setOverlay(true);  
+                qDebug() << "33333333333333333333333333333333";
+                emit requestMapRefresh();
+            });
+        });
+    });
+    //  qDebug() << "AAAAAAAAAAAAAAAAAAAAAAAAAAA"<<MapPluginEngine::instance();
+}
 
 void MapHandler::addFeature(AbstractFeature* feature)
 {

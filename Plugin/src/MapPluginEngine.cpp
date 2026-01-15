@@ -3,10 +3,14 @@
 #include "QtLocation/private/qgeocameracapabilities_p.h"
 #include "QtLocation/private/qgeomaptype_p.h"
 
+MapPluginEngine* MapPluginEngine::s_instance = nullptr;
 
 MapPluginEngine::MapPluginEngine(const QVariantMap &parameters)
     : QGeoTiledMappingManagerEngine()
 {
+
+    s_instance = this;
+
     QGeoCameraCapabilities cameraCaps;
     cameraCaps.setMinimumZoomLevel(0.0);
     cameraCaps.setMaximumZoomLevel(19.0);
@@ -18,7 +22,8 @@ MapPluginEngine::MapPluginEngine(const QVariantMap &parameters)
                                  //который по утверждению самих OSM продиктован Google.
     setCacheHint(QAbstractGeoTileCache::CacheArea::MemoryCache);//Эта опция выставлена намерено,
                                                              //поскольку мы генерируем тайлы по данным с жесткого диска,
-                                                             //хранить их в дисковом кэше смысла нет. 
+
+
     QList<QGeoMapType> types;
 
         types << QGeoMapType(
@@ -36,10 +41,22 @@ MapPluginEngine::MapPluginEngine(const QVariantMap &parameters)
 
     m_tileFetcher = new MapTileFetcher(parameters, this, QSize(256, 256));
     setTileFetcher(m_tileFetcher);
+    qDebug() << this;
+    
 }
 
 QGeoMap *MapPluginEngine::createMap()
 {
     // Используем QGeoTiledMap — стандартная карта для плиток
     return new QGeoTiledMap(this, nullptr);
+}
+
+MapPluginEngine* MapPluginEngine::instance()
+{
+    return s_instance;
+}
+
+MapTileFetcher* MapPluginEngine::getFetcher(){
+
+    return m_tileFetcher;
 }
