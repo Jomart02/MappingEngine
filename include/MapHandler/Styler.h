@@ -44,17 +44,27 @@ public:
 
     void setColor(const QColor& c) { pen.setColor(c); }
     void setWidth(qreal w) { pen.setWidthF(w); }
-    void setDashPattern(const QVector<qreal>& dashes) { pen.setDashPattern(dashes); }  // прерывистость, напр. {10, 5}
+    void setDashPattern(const QVector<qreal>& dashes) {   
+        pen.setStyle(Qt::CustomDashLine);
+        pen.setDashPattern(dashes);  
+    } 
 
     QVariantMap toVariantMap() const override {
-        return {
-            {"color", pen.color().name()},
-            {"weight", pen.widthF()},
-            {"dashArray", QString::number(pen.dashPattern()[0]) + "," + QString::number(pen.dashPattern()[1])},
-            {"visible", visible},
-            {"opacity", opacity},
-            {"z", zIndex}
-        };
+        QVariantMap result;
+        result["color"] = pen.color().name();
+        result["weight"] = pen.widthF();
+        
+        QVector<qreal> dashes = pen.dashPattern();
+        QStringList dashStrings;
+        for (qreal d : dashes) {
+            dashStrings << QString::number(d);
+        }
+        result["dashArray"] = dashStrings.join(",");
+        
+        result["visible"] = visible;
+        result["opacity"] = opacity;
+        result["z"] = zIndex;
+        return result;
     }
 };
 

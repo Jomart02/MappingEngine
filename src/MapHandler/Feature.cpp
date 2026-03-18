@@ -70,3 +70,38 @@ void AbstractFeature::notifyStyleChanged() {
 void AbstractFeature::notifyGeometryChanged() {
     emit geometryChanged();
 }
+
+
+
+FeatureGroup::FeatureGroup(const QString& name, QObject* parent)
+    : QObject(parent), m_name(name) {}
+
+FeatureGroup::~FeatureGroup() {
+    qDeleteAll(m_features);
+}
+
+void FeatureGroup::addFeature(AbstractFeature* feature) {
+    if (!feature || m_features.contains(feature)) return;
+    
+    // Feature inherits group's visibility initially
+    feature->setVisible(m_visible); 
+    feature->setParent(this);
+    m_features.append(feature);
+    emit featureAddedToGroup(feature);
+}
+
+void FeatureGroup::removeFeature(AbstractFeature* feature) {
+    if (m_features.removeOne(feature)) {
+        emit featureRemovedFromGroup(feature);
+        feature->deleteLater();
+    }
+}
+
+void FeatureGroup::setVisible(bool visible) {
+    if (m_visible == visible) return;
+    m_visible = visible;
+    for(auto* f : m_features) {
+        f->setVisible(visible);
+    }
+    emit groupVisibilityChanged(visible);
+}

@@ -23,6 +23,7 @@ public:
     Geometry* geometry() const { return m_geometry; }
     void setGeometry(Geometry* g);
 
+    template <typename T> T* styleAs() const { return static_cast<T*>(m_style); }
     Styler* style() const { return m_style; }
     void setStyle(Styler* s);  
 
@@ -83,3 +84,30 @@ using LineFeature         = Feature<LineString>;
 using PolygonFeature      = Feature<Polygon>;
 using MultiLineFeature    = Feature<MultiLineString>;
 using MultiPolygonFeature = Feature<MultiPolygon>;
+
+
+class FeatureGroup : public QObject {
+    Q_OBJECT
+public:
+    explicit FeatureGroup(const QString& name, QObject* parent = nullptr);
+    ~FeatureGroup();
+
+    QString name() const { return m_name; }
+    
+    void addFeature(AbstractFeature* feature);
+    void removeFeature(AbstractFeature* feature);
+    QList<AbstractFeature*> features() const { return m_features; }
+
+    void setVisible(bool visible);
+    bool visible() const { return m_visible; }
+
+signals:
+    void featureAddedToGroup(AbstractFeature* feature);
+    void featureRemovedFromGroup(AbstractFeature* feature);
+    void groupVisibilityChanged(bool visible);
+
+private:
+    QString m_name;
+    QList<AbstractFeature*> m_features;
+    bool m_visible = true;
+};

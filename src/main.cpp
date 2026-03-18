@@ -50,80 +50,75 @@ QApplication app(argc, argv);
     
     auto* handler = MapHandler::instance();
     
+    // 1. ADD INDIVIDUAL FEATURE (Line)
+    QTimer::singleShot(1000, [handler](){
+        qDebug() << "Test 1: Adding Route Line";
+        auto* line = new LineString(); 
+        line->coordinates << Coordinate(37.6173, 55.7558) << Coordinate(47.7, 55.8) << Coordinate(12.6173, 15.7558);
+        
+        auto* feature = new LineFeature("route_1", line);
+        feature->style()->setColor( Qt::red) ;
+        feature->style()->setWidth(5);
+        handler->addFeature(feature);
+    });
 
-    auto* lineGeom = new LineString();
-    lineGeom->coordinates << Coordinate(17.58, 25.73)
-                          << Coordinate(37.72, 55.76)
-                          << Coordinate(67.65, 45.80);
+   // 2. MODIFY FEATURE (Animation)
+    QTimer::singleShot(5000, [handler](){
+        qDebug() << "Test 2: Modifying Route Geometry & Style";
+        if(auto* f = handler->feature("route_1")) {
+            // Change Style
+            f->styleAs<LineStyle>()->setColor( Qt::green);
+            f->styleAs<LineStyle>()->setWidth( 10);
+            f->styleAs<LineStyle>()->setDashPattern({10.0, 50.0});
+            f->notifyStyleChanged();
 
-    auto* route = new LineFeature("main_route", lineGeom);
-    auto* lineStyle = route->style();  
-    lineStyle->pen.setColor(QColor(Qt::red));
-    lineStyle->pen.setWidthF(1);
-    lineStyle->pen.setDashPattern({20, 10, 5, 10}); 
-    lineStyle->opacity = 0.9;
-    lineStyle->zIndex = 100;
-    handler->addFeature(route);
+            // // Change Geometry (Move end point)
+            auto* geom = static_cast<LineString*>(f->geometry());
+            geom->coordinates[1] = Coordinate(37.8, 55.6); 
+            f->notifyGeometryChanged();
+        }
+    });
 
-    auto* polyGeom = new Polygon();
-    polyGeom->exteriorRing << Coordinate(37.60, 55.70)
-                           << Coordinate(2.75, 5.70)
-                           << Coordinate(10.70, 10.78)
-                           << Coordinate(37.60, 55.70);
+    // 3. CREATE A GROUP AND ADD TO MAP
+    // Keep pointer to group safe (usually stored in a class, here capture in lambda)
+    static FeatureGroup* cityGroup = new FeatureGroup("city_objects");
 
-    auto* zone = new PolygonFeature("protected_zone", polyGeom);
-    auto* polyStyle = zone->style();
-    polyStyle->borderPen.setColor(Qt::darkBlue);
-    polyStyle->borderPen.setWidthF(6);
-    polyStyle->fillBrush.setColor(QColor("#2a9d8f88"));
-    polyStyle->fillBrush.setStyle(Qt::Dense4Pattern);  // сетка из точек
-    polyStyle->opacity = 0.7;
-    handler->addFeature(zone);
+    QTimer::singleShot(3000, [handler](){
+        qDebug() << "Test 3: Adding Group with existing items";
+        
+        // Add Circle to Group
+        auto* circle = new Circle({37.65, 55.72}, 2000);
+        auto* fCircle = new CircleFeature("zone_A", circle);
+        fCircle->styleAs<PolygonStyle>()->setFillColor(QColor(255, 0, 0, 100));
+        cityGroup->addFeature(fCircle);
 
-    // === ТЕСТ 4: Круг с градиентной заливкой (через QColor) ===
-    auto* circleGeom = new Circle({37.62, 55.75}, 5000);  // 5 км
-    auto* coverage = new CircleFeature("signal_coverage", circleGeom);
-    auto* circleStyle = coverage->style();
-    circleStyle->borderPen.setColor(QColor("#ff0066"));
-    circleStyle->borderPen.setWidthF(8);
-    circleStyle->borderPen.setDashPattern({15, 8});  // пунктир
-    circleStyle->fillBrush.setColor(QColor("#ff006644"));
-    circleStyle->opacity = 0.6;
-    handler->addFeature(coverage);
+        // Add Group to Map (Circle should appear)
+        handler->addGroup(cityGroup);
+    });
 
-//     
-    // QTimer::singleShot(1000, [=]() mutable {
-    //     for (int i = 0; i < 5; ++i) {
-    //         QTimer::singleShot(i * 300, [=]() {
-    //             auto* pulse = new CircleFeature(QString("pulse_%1").arg(i),
-    //                                            new Circle({37.6173 + i*0.01, 55.7558 + i*0.01}, 1000 + i*500));
-    //             auto* s = pulse->style();
-    //             s->borderPen.setColor(QColor(255, 255, 255, 200));
-    //             s->borderPen.setWidthF(4 + i);
-    //             s->fillBrush.setColor(QColor(100, 200, 255, 30 + i*20));
-    //             s->opacity = 0.8;
-    //             handler->addFeature(pulse);
-    //                 QTimer::singleShot(3000, [=]() {
-    //                     qDebug() << "AAAA" <<i;
-    //                     s->borderPen.setColor(QColor(Qt::red));
-    //                     s->borderPen.setWidthF(4*5 + i);
-    //                     s->fillBrush.setColor(QColor(1, 33, 111, 30 + i*20));
-    //                     s->opacity = 0.8;
-    //                     pulse->setStyle(s);
-    //                     pulse->notifyStyleChanged();
-    //                     auto g = pulse->geometry();
-    //                     g->center = {37.6173 + i*0.2, 55.7558 + i*0.2};
-    //                     g->radiusMeters = 1000 + i*5000;
-    //                     pulse->notifyGeometryChanged();
-    //                 });
-                
-    //             QTimer::singleShot(7000, [=]() {
-    //                 handler->removeFeature(pulse);
-    //             });
-    //         });
-    //     }
+    // 4. ADD ITEM TO GROUP ALREADY ON MAP
+    // QTimer::singleShot(4000, [handler](){
+    //     qDebug() << "Test 4: Adding item to existing group on map";
+        
+    //     auto* poly = new Polygon();
+    //     poly->exteriorRing << Coordinate(37.5, 55.7) << Coordinate(37.55, 55.7) << Coordinate(37.52, 55.75);
+    //     auto* fPoly = new PolygonFeature("zone_B", poly);
+        
+    //     // This should immediately trigger MapHandler to add it to QML
+    //     cityGroup->addFeature(fPoly); 
     // });
 
+    // // 5. HIDE GROUP
+    QTimer::singleShot(5000, [handler](){
+        qDebug() << "Test 5: Hiding Group";
+        cityGroup->setVisible(false);
+    });
+
+    // // 6. REMOVE GROUP (Removes items from map)
+    // QTimer::singleShot(6000, [handler](){
+    //     qDebug() << "Test 6: Removing Group";
+    //     handler->removeGroup("city_objects");
+    // });
 
     return app.exec();
 }

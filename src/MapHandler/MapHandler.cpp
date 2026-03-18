@@ -11,167 +11,96 @@ MapHandler* MapHandler::instance()
 
 MapHandler::MapHandler(QObject* parent) : QObject(parent) {
 
-    QTimer::singleShot(5000, [=](){
-        qDebug() << "AAAAAAAAAAAAAAAAAAAAAAAAAAA"<<MapPluginEngine::instance();
-        QTimer::singleShot(10000,[=](){
-            MapPluginEngine::instance()->getFetcher()->setOverlay(false);  
-            qDebug() << "bbbbbbbbbbbb";
-            emit requestMapRefresh();
-            QTimer::singleShot(10000,[=](){
-                MapPluginEngine::instance()->getFetcher()->setOverlay(true);  
-                qDebug() << "33333333333333333333333333333333";
-                emit requestMapRefresh();
-            });
-        });
-    });
+    // QTimer::singleShot(5000, [=](){
+    //     qDebug() << "AAAAAAAAAAAAAAAAAAAAAAAAAAA"<<MapPluginEngine::instance();
+    //     QTimer::singleShot(10000,[=](){
+    //         MapPluginEngine::instance()->getFetcher()->setOverlay(false);  
+    //         qDebug() << "bbbbbbbbbbbb";
+    //         emit requestMapRefresh();
+    //         QTimer::singleShot(10000,[=](){
+    //             MapPluginEngine::instance()->getFetcher()->setOverlay(true);  
+    //             qDebug() << "33333333333333333333333333333333";
+    //             emit requestMapRefresh();
+    //         });
+    //     });
+    // });
     //  qDebug() << "AAAAAAAAAAAAAAAAAAAAAAAAAAA"<<MapPluginEngine::instance();
 }
 
 void MapHandler::addFeature(AbstractFeature* feature)
 {
-    if (!feature || feature->name().isEmpty()) {
-        qWarning() << "Feature must have a non-empty name";
-        return;
-    }
+    if (!feature || feature->name().isEmpty()) return;
+    
+    QString name = feature->name();
+    if (m_features.contains(name)) removeFeature(name);
 
-    const QString name = feature->name();
-
-    if (m_features.contains(name)) {
-        qWarning() << "Feature" << name << "already exists → replacing";
-        removeFeature(name);
-    }
-
-    feature->setParent(this);
     m_features[name] = feature;
+    feature->setParent(this);
 
-    QVariantMap geomData;
-    Geometry* g = feature->geometry();
+    QVariantMap geomData = geometryToVariant(feature->geometry());
+    QVariantMap styleData = feature->style()->toVariantMap();
+    styleData["visible"] = feature->visible();
 
-    switch (g->geometryType()) {
-    case GeometryType::Point: {
-        auto* p = static_cast<Point*>(g);
-        geomData["type"] = "Point";
-        geomData["lat"] = p->coordinate.lat;
-        geomData["lon"] = p->coordinate.lon;
-        break;
-    }
-    case GeometryType::LineString: {
-        auto* ls = static_cast<LineString*>(g);
-        geomData["type"] = "LineString";
-        QVariantList coords;
-        for (const auto& c : ls->coordinates)
-            coords << QVariantMap{{"lat", c.lat}, {"lon", c.lon}};
-        geomData["coordinates"] = coords;
-        break;
-    }
-    case GeometryType::Polygon: {
-        auto* poly = static_cast<Polygon*>(g);
-        geomData["type"] = "Polygon";
-        QVariantList exterior;
-        for (const auto& c : poly->exteriorRing)
-            exterior << QVariantMap{{"lat", c.lat}, {"lon", c.lon}};
-        geomData["exterior"] = exterior;
-        break;
-    }
-    case GeometryType::Circle: {
-        auto* c = static_cast<Circle*>(g);
-        geomData["type"] = "Circle";
-        geomData["lat"] = c->center.lat;
-        geomData["lon"] = c->center.lon;
-        geomData["radius"] = c->radiusMeters;
-        break;
-        break;
-    }
+    emit featureAdded(name, (int)feature->geometry()->geometryType(), geomData, styleData);
+    setupConnections(feature);
+}
+
+
+void MapHandler::addGroup(FeatureGroup* group) {
+    if(!group) return;
+    if(m_groups.contains(group->name())) removeGroup(group->name());
+
+    m_groups[group->name()] = group;
+    group->setParent(this);
+
+    for(auto* f : group->features()) {
+        addFeature(f); 
     }
     
-    emit featureAdded(name, feature->geometryType(), geomData, feature->style()->toVariantMap());
-    setupConnections(feature);
+    connect(group, &FeatureGroup::featureAddedToGroup, this, [this](AbstractFeature* f){
+        this->addFeature(f); 
+    });
+
+    connect(group, &FeatureGroup::featureRemovedFromGroup, this, [this](AbstractFeature* f){
+        this->removeFeature(f->name());
+    });
+    
+    for(auto* f : group->features()) {
+        addFeature(f);
+    }
+}
+
+void MapHandler::removeGroup(const QString& groupName) {
+    if(FeatureGroup* g = m_groups.take(groupName)) {
+        // Remove all its features from QML
+        for(auto* f : g->features()) {
+            removeFeature(f->name());
+        }
+        g->deleteLater();
+    }
+}
+
+FeatureGroup* MapHandler::getGroup(const QString& name) const {
+    return m_groups.value(name);
 }
 
 void MapHandler::setupConnections(AbstractFeature* f)
 {
-    const QString originalName = f->name();
-
-    // Вспомогательная функция — конвертирует Geometry → QVariantMap
-    auto toVariantMap = [f]() -> QVariantMap {
-        QVariantMap map;
-        Geometry* g = f->geometry();
-        if (!g) return map;
-
-        switch (g->geometryType()) {
-        case GeometryType::Point: {
-            auto* p = static_cast<Point*>(g);
-            map["type"] = "Point";
-            map["lat"] = p->coordinate.lat;
-            map["lon"] = p->coordinate.lon;
-            break;
-        }
-        case GeometryType::LineString:
-        case GeometryType::MultiLineString: {
-            auto* ls = static_cast<LineString*>(g);
-            map["type"] = "LineString";
-            QVariantList coords;
-            for (const auto& c : ls->coordinates) {
-                coords.append(QVariantMap{{"lat", c.lat}, {"lon", c.lon}});
-            }
-            map["coordinates"] = coords;
-            break;
-        }
-        case GeometryType::Polygon:
-        case GeometryType::MultiPolygon: {
-            auto* poly = static_cast<Polygon*>(g);
-            map["type"] = "Polygon";
-            QVariantList exterior;
-            for (const auto& c : poly->exteriorRing) {
-                exterior.append(QVariantMap{{"lat", c.lat}, {"lon", c.lon}});
-            }
-            map["exterior"] = exterior;
-            break;
-        }
-        case GeometryType::Circle: {
-            auto* c = static_cast<Circle*>(g);
-            map["type"] = "Circle";
-            map["lat"] = c->center.lat;
-            map["lon"] = c->center.lon;
-            map["radius"] = c->radiusMeters;
-            break;
-        }
-        default:
-            break;
-        }
-        return map;
-    };
-
-    auto updateFeature = [this, f, toVariantMap, originalName]() {
-        QString currentName = f->name().isEmpty() ? originalName : f->name();
-        QVariantMap geomData = toVariantMap();
-        QVariantMap style = f->style()->toVariantMap();
-
-        style["visible"] = f->visible();
-        emit featureUpdated(currentName, f->geometryType(), geomData, style);
-    };
-
-    connect(f, &AbstractFeature::geometryChanged, this, updateFeature);
-    connect(f, &AbstractFeature::styleChanged,    this, updateFeature);
-    connect(f, &AbstractFeature::visibleChanged,   this, updateFeature);
-
-    // connect(f, &AbstractFeature::nameChanged, this, [this, f, toVariantMap](const QString& newName) {
-    //     if (newName.isEmpty() || newName == f->name()) return;
-
-    //     QString oldName = f->name(); 
-    //     if (m_features.contains(oldName)) {
-    //         m_features.remove(oldName);
-    //         m_features[newName] = f;
-
-    //         QVariantMap geomData = toVariantMap();
-    //         QVariantMap style = f->style()->toVariantMap();
-    //         style["visible"] = f->visible();
-
-    //         emit featureUpdated(newName, geomData, style);
-    //     }
-    // });
+    connect(f, &AbstractFeature::geometryChanged, this, &MapHandler::onFeatureChanged);
+    connect(f, &AbstractFeature::styleChanged, this, &MapHandler::onFeatureChanged);
+    connect(f, &AbstractFeature::visibleChanged, this, &MapHandler::onFeatureChanged);
+}
 
 
+void MapHandler::onFeatureChanged()
+{
+    AbstractFeature* f = qobject_cast<AbstractFeature*>(sender());
+    if (!f || !m_features.contains(f->name())) return;  // Проверка валидности
+    
+    QVariantMap geom = geometryToVariant(f->geometry());
+    QVariantMap style = f->style()->toVariantMap();
+    style["visible"] = f->visible();
+    emit featureUpdated(f->name(), (int)f->geometry()->geometryType(), geom, style);
 }
 
 void MapHandler::removeFeature(const QString& name) {
@@ -186,9 +115,9 @@ void MapHandler::removeFeature(AbstractFeature* f) {
 }
 
 void MapHandler::clearAll() {
-    for (const QString& n : m_features.keys()) emit featureRemoved(n);
-    qDeleteAll(m_features);
+    for(auto k : m_features.keys()) emit featureRemoved(k);
     m_features.clear();
+    m_groups.clear();
 }
 
 AbstractFeature* MapHandler::feature(const QString& name) const {
@@ -196,9 +125,51 @@ AbstractFeature* MapHandler::feature(const QString& name) const {
 }
 
 void MapHandler::setVisible(const QString& name, bool v) {
-    if (auto* f = feature(name)) f->setVisible(v);
+    if(auto* f = feature(name)) f->setVisible(v);
+    if(auto* g = getGroup(name)) g->setVisible(v);
 }
 
 void MapHandler::centerOn(const QString& name) {
 
+}
+
+QVariantMap MapHandler::geometryToVariant(Geometry* g) const{
+    QVariantMap map;
+    if (!g) return map;
+
+    switch (g->geometryType()) {
+        case GeometryType::Point: {
+            auto* p = static_cast<Point*>(g);
+            map["type"] = "Point";
+            map["lat"] = p->coordinate.lat;
+            map["lon"] = p->coordinate.lon;
+            break;
+        }
+        case GeometryType::LineString: {
+            auto* ls = static_cast<LineString*>(g);
+            map["type"] = "LineString";
+            QVariantList coords;
+            for (const auto& c : ls->coordinates) coords << QVariantMap{{"lat", c.lat}, {"lon", c.lon}};
+            map["coordinates"] = coords;
+            break;
+        }
+        case GeometryType::Polygon: {
+            auto* poly = static_cast<Polygon*>(g);
+            map["type"] = "Polygon";
+            QVariantList exterior;
+            for (const auto& c : poly->exteriorRing) exterior << QVariantMap{{"lat", c.lat}, {"lon", c.lon}};
+            map["exterior"] = exterior;
+            break;
+        }
+        case GeometryType::Circle: {
+            auto* c = static_cast<Circle*>(g);
+            map["type"] = "Circle";
+            map["lat"] = c->center.lat;
+            map["lon"] = c->center.lon;
+            map["radius"] = c->radiusMeters;
+            break;
+        }
+        default: break;
+    }
+    return map;
 }

@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>qml/Map.qml</file>
         <file>qml/Marker.qml</file>
+        <file>qml/FeatureManager.qml</file>
     </qresource>
 </RCC>

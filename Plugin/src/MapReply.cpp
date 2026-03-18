@@ -125,6 +125,10 @@ void MapReply::finishWithImage(const QImage &image)
     setFinished(true);
 }
 
+#include <QGeoCoordinate>
+#include <cmath>
+
+
 QString MapReply::osmTileUrl(const QGeoTileSpec &spec) const
 {
     int x = spec.x();
